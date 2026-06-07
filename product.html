@@ -1,0 +1,316 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product - ShopHub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="main-header"></div>
+
+  <main class="container">
+    <div id="breadcrumb-wrap" class="breadcrumb">
+      <a href="index.html">Home</a>
+      <span class="breadcrumb-sep"><i class="fas fa-chevron-right"></i></span>
+      <a href="products.html">Products</a>
+      <span class="breadcrumb-sep"><i class="fas fa-chevron-right"></i></span>
+      <span class="breadcrumb-current" id="breadcrumb-name">Loading...</span>
+    </div>
+
+    <div id="product-detail-wrap">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Reviews -->
+    <div class="reviews-section" id="reviews-section" style="display:none">
+      <h2 class="section-title mb-16">Customer Reviews</h2>
+      <div id="rating-summary"></div>
+      <div id="reviews-list"></div>
+      <div id="review-form-wrap"></div>
+    </div>
+
+    <!-- Related Products -->
+    <section class="section" id="related-section" style="display:none">
+      <div class="section-header">
+        <h2 class="section-title">You May Also Like</h2>
+      </div>
+      <div class="products-grid" id="related-grid"></div>
+    </section>
+  </main>
+
+  <div id="main-footer"></div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    let currentProduct = null;
+    let selectedQty = 1;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      renderFooter();
+      const id = getUrlParam('id');
+      if (!id) { window.location.href = 'products.html'; return; }
+      currentProduct = getProduct(id);
+      if (!currentProduct) { window.location.href = 'products.html'; return; }
+      renderProductDetail(currentProduct);
+      renderReviews(currentProduct.id);
+      renderRelated(currentProduct);
+    });
+
+    function renderProductDetail(p) {
+      document.title = p.name + ' - ShopHub';
+      document.getElementById('breadcrumb-name').textContent = p.name;
+      const seller = getSellerById(p.sellerId);
+      const inWishlist = isInWishlist(p.id);
+      const inCart = isInCart(p.id);
+
+      document.getElementById('product-detail-wrap').innerHTML = `
+        <div class="product-detail-layout">
+          <div class="product-images">
+            <img id="main-product-img" class="product-main-image" src="${p.image}" alt="${p.name}" onerror="this.src='https://picsum.photos/seed/default/400/400'">
+            <div class="product-thumbnails">
+              ${(p.images || [p.image]).map((img, i) => `
+                <img src="${img}" class="product-thumbnail ${i===0?'active':''}" onclick="switchImage('${img}', this)" onerror="this.src='https://picsum.photos/seed/default/100/100'" alt="">
+              `).join('')}
+            </div>
+          </div>
+          <div class="product-info">
+            ${p.tags && p.tags.includes('hot') ? '<span class="badge badge-hot" style="position:static;display:inline-flex;margin-bottom:8px">🔥 HOT ITEM</span>' : ''}
+            ${p.tags && p.tags.includes('new') ? '<span class="badge badge-new" style="position:static;display:inline-flex;margin-bottom:8px;margin-left:4px">NEW</span>' : ''}
+            <h1 class="product-title">${p.name}</h1>
+            <div class="product-rating-row">
+              ${renderStars(p.rating)}
+              <span class="rating-val">${p.rating}</span>
+              <span class="review-count">(${(p.reviewCount||0).toLocaleString()} reviews)</span>
+              <span style="color:var(--text-muted);font-size:0.85rem">· ${(p.sold||0).toLocaleString()} sold</span>
+            </div>
+            <div class="product-original-row">
+              <div class="product-price-main">${formatPrice(p.price)}</div>
+              ${p.originalPrice > p.price ? `
+                <span class="orig">${formatPrice(p.originalPrice)}</span>
+                <span class="product-discount-badge">-${p.discount}% OFF</span>
+              ` : ''}
+            </div>
+            ${p.originalPrice > p.price ? `<p style="color:var(--success);font-size:0.9rem;font-weight:600">You save: ${formatPrice(p.originalPrice - p.price)}</p>` : ''}
+            <div class="divider"></div>
+            <div class="product-stock">
+              ${p.stock > 0 ? `<span class="stock-in"><i class="fas fa-check-circle"></i> In Stock</span><span style="color:var(--text-muted);font-size:0.85rem">(${p.stock} available)</span>` : '<span class="stock-out"><i class="fas fa-times-circle"></i> Out of Stock</span>'}
+            </div>
+            <div>
+              <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px">Quantity:</div>
+              <div class="qty-selector">
+                <button class="qty-btn" onclick="changeQty(-1)">−</button>
+                <input type="number" class="qty-input" id="qty-input" value="1" min="1" max="${p.stock}" onchange="onQtyInput()">
+                <button class="qty-btn" onclick="changeQty(1)">+</button>
+              </div>
+            </div>
+            <div class="product-actions">
+              <button class="btn-add-to-cart ${inCart?'active':''}" id="cart-btn" onclick="addCurrentToCart()" ${p.stock<1?'disabled':''}>
+                <i class="fas fa-shopping-cart"></i> ${inCart ? 'In Cart' : 'Add to Cart'}
+              </button>
+              <button class="btn-buy-now" onclick="buyNow()" ${p.stock<1?'disabled':''}>
+                <i class="fas fa-bolt"></i> Buy Now
+              </button>
+              <button class="header-action-btn ${inWishlist?'active':''}" id="wish-btn" onclick="toggleWishlistBtn()" title="${inWishlist?'Remove from wishlist':'Add to wishlist'}" style="position:relative;width:48px;height:48px;border:1px solid var(--border);border-radius:var(--radius)">
+                <i class="${inWishlist?'fas':'far'} fa-heart" style="color:${inWishlist?'var(--primary)':'var(--gray-500)'}"></i>
+              </button>
+            </div>
+            ${p.stock > 0 && p.stock < 10 ? `<p style="color:var(--danger);font-size:0.85rem"><i class="fas fa-fire"></i> Only ${p.stock} left!</p>` : ''}
+            <div class="divider"></div>
+            <!-- Seller Card -->
+            <div class="product-seller-card">
+              <img src="${seller ? seller.avatar : ''}" class="seller-info-img" alt="${seller ? seller.name : ''}" onerror="this.src='https://ui-avatars.com/api/?name=Seller&background=2563EB&color=fff'">
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:0.95rem">${seller ? seller.name : 'Unknown Seller'}</div>
+                ${seller ? `<div style="font-size:0.8rem;color:var(--text-muted)">${renderStars(seller.rating)} ${seller.rating} · ${seller.totalSales.toLocaleString()} sales${seller.verified ? ' · <span style="color:var(--info)"><i class="fas fa-check-circle"></i> Verified</span>' : ''}</div>` : ''}
+              </div>
+              ${seller ? `<a href="seller.html?id=${seller.id}" class="btn btn-outline" style="padding:8px 14px;font-size:0.85rem">Visit Store</a>` : ''}
+            </div>
+            <!-- Delivery Info -->
+            <div style="background:var(--gray-50);border-radius:var(--radius-lg);padding:14px;font-size:0.85rem">
+              <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><i class="fas fa-truck" style="color:var(--primary)"></i> <strong>Free shipping</strong> on orders over ₱1,000</div>
+              <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><i class="fas fa-undo" style="color:var(--primary)"></i> 30-day easy returns</div>
+              <div style="display:flex;gap:10px;align-items:center"><i class="fas fa-shield-alt" style="color:var(--primary)"></i> Buyer protection guaranteed</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description & Specs Tabs -->
+        <div class="reviews-section" style="margin-top:0">
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('desc', this)">Description</button>
+            <button class="tab-btn" onclick="switchTab('specs', this)">Specifications</button>
+          </div>
+          <div class="tab-panel active" id="tab-desc">
+            <p style="line-height:1.8;color:var(--text-light)">${p.description || 'No description available.'}</p>
+          </div>
+          <div class="tab-panel" id="tab-specs">
+            ${p.specifications && Object.keys(p.specifications).length ? `
+              <table class="specs-table">
+                ${Object.entries(p.specifications).map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}
+              </table>
+            ` : '<p style="color:var(--text-muted)">No specifications available.</p>'}
+          </div>
+        </div>
+      `;
+    }
+
+    function switchImage(src, thumb) {
+      document.getElementById('main-product-img').src = src;
+      document.querySelectorAll('.product-thumbnail').forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function changeQty(delta) {
+      const input = document.getElementById('qty-input');
+      let val = parseInt(input.value) + delta;
+      val = Math.max(1, Math.min(val, currentProduct.stock || 99));
+      input.value = val;
+      selectedQty = val;
+    }
+
+    function onQtyInput() {
+      const input = document.getElementById('qty-input');
+      let val = parseInt(input.value) || 1;
+      val = Math.max(1, Math.min(val, currentProduct.stock || 99));
+      input.value = val;
+      selectedQty = val;
+    }
+
+    function addCurrentToCart() {
+      if (!currentProduct) return;
+      addToCart(currentProduct, selectedQty);
+      const btn = document.getElementById('cart-btn');
+      if (btn) { btn.innerHTML = '<i class="fas fa-check"></i> Added to Cart'; }
+    }
+
+    function toggleWishlistBtn() {
+      if (!currentProduct) return;
+      const btn = document.getElementById('wish-btn');
+      const icon = btn.querySelector('i');
+      if (isInWishlist(currentProduct.id)) {
+        removeFromWishlist(currentProduct.id);
+        icon.className = 'far fa-heart';
+        icon.style.color = 'var(--gray-500)';
+      } else {
+        addToWishlist(currentProduct.id);
+        icon.className = 'fas fa-heart';
+        icon.style.color = 'var(--primary)';
+      }
+    }
+
+    function buyNow() {
+      if (!currentProduct) return;
+      addToCart(currentProduct, selectedQty);
+      window.location.href = 'checkout.html';
+    }
+
+    function renderReviews(productId) {
+      const section = document.getElementById('reviews-section');
+      const reviews = getReviews(productId);
+      section.style.display = 'block';
+
+      // Rating summary
+      const totalReviews = reviews.length;
+      const avgRating = totalReviews ? reviews.reduce((s,r) => s+r.rating, 0) / totalReviews : 0;
+      const ratingCounts = [5,4,3,2,1].map(n => ({ star: n, count: reviews.filter(r => r.rating === n).length }));
+      document.getElementById('rating-summary').innerHTML = `
+        <div class="rating-summary">
+          <div class="rating-big">
+            <div class="num">${avgRating.toFixed(1)}</div>
+            <div class="stars">${renderStars(avgRating)}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">${totalReviews} reviews</div>
+          </div>
+          <div class="rating-bars">
+            ${ratingCounts.map(rc => `
+              <div class="rating-bar-row">
+                <span class="rating-bar-label">${rc.star}★</span>
+                <div class="rating-bar-track"><div class="rating-bar-fill" style="width:${totalReviews ? (rc.count/totalReviews)*100 : 0}%"></div></div>
+                <span style="font-size:0.8rem;color:var(--text-muted);min-width:24px">${rc.count}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('reviews-list').innerHTML = reviews.length
+        ? reviews.map(r => `
+          <div class="review-card">
+            <div class="review-header">
+              <img src="${r.userAvatar}" class="review-avatar" onerror="this.style.display='none'" alt="">
+              <div>
+                <div class="review-name">${r.userName}</div>
+                <div>${renderStars(r.rating)} <span style="font-size:0.78rem;color:var(--text-muted)">${r.date}</span></div>
+              </div>
+            </div>
+            <p class="review-comment">${r.comment}</p>
+            <div class="review-helpful"><i class="far fa-thumbs-up"></i> ${r.helpful} people found this helpful</div>
+          </div>
+        `).join('')
+        : '<p style="color:var(--text-muted);padding:20px 0">No reviews yet. Be the first to review!</p>';
+
+      const user = getCurrentUser();
+      const alreadyReviewed = user && reviews.some(r => r.userId === user.id);
+      document.getElementById('review-form-wrap').innerHTML = user && !alreadyReviewed ? `
+        <div class="review-form">
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px">Write a Review</h3>
+          <div style="margin-bottom:12px">
+            <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px">Your Rating:</div>
+            <div class="star-rating-input">
+              <input type="radio" name="review-star" id="s5" value="5"><label for="s5">★</label>
+              <input type="radio" name="review-star" id="s4" value="4"><label for="s4">★</label>
+              <input type="radio" name="review-star" id="s3" value="3"><label for="s3">★</label>
+              <input type="radio" name="review-star" id="s2" value="2"><label for="s2">★</label>
+              <input type="radio" name="review-star" id="s1" value="1"><label for="s1">★</label>
+            </div>
+          </div>
+          <textarea id="review-comment" class="form-control" rows="4" placeholder="Share your experience with this product..."></textarea>
+          <button class="btn btn-primary mt-12" onclick="submitReview()"><i class="fas fa-paper-plane"></i> Submit Review</button>
+        </div>
+      ` : user && alreadyReviewed ? '<p style="color:var(--success);padding:12px 0"><i class="fas fa-check-circle"></i> You have already reviewed this product.</p>'
+        : '<p style="padding:12px 0;color:var(--text-muted)"><a href="login.html" class="text-primary">Login</a> to write a review.</p>';
+    }
+
+    function submitReview() {
+      const ratingInput = document.querySelector('input[name="review-star"]:checked');
+      const comment = document.getElementById('review-comment').value.trim();
+      if (!ratingInput) { showNotification('Please select a rating.', 'error'); return; }
+      if (!comment) { showNotification('Please write a comment.', 'error'); return; }
+      const result = addReview(currentProduct.id, { rating: parseInt(ratingInput.value), comment });
+      if (result.success) {
+        showNotification('Review submitted!', 'success');
+        renderReviews(currentProduct.id);
+        currentProduct = getProduct(currentProduct.id);
+        document.querySelector('.product-rating-row').innerHTML = `
+          ${renderStars(currentProduct.rating)}
+          <span class="rating-val">${currentProduct.rating}</span>
+          <span class="review-count">(${(currentProduct.reviewCount||0).toLocaleString()} reviews)</span>
+        `;
+      } else { showNotification(result.message, 'error'); }
+    }
+
+    function renderRelated(product) {
+      const related = getRelatedProducts(product.id, 6);
+      if (related.length) {
+        document.getElementById('related-section').style.display = 'block';
+        document.getElementById('related-grid').innerHTML = related.map(p => renderProductCard(p)).join('');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopHub - Your Online Marketplace</title>
+  <meta name="description" content="Shop from thousands of products. Best deals on electronics, fashion, home, sports, and more.">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="main-header"></div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-content">
+        <div class="hero-badge">🔥 Mega Sale — Up to 50% Off</div>
+        <h1>Shop Everything<br>You Love</h1>
+        <p>Discover millions of products from thousands of trusted sellers. Fast delivery, secure payments, easy returns.</p>
+        <div class="hero-btns">
+          <a href="products.html" class="btn-hero-primary">Shop Now <i class="fas fa-arrow-right"></i></a>
+          <a href="products.html?sort=discount" class="btn-hero-secondary">View Deals</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="num">30+</div><div class="label">Products</div></div>
+          <div class="hero-stat"><div class="num">5</div><div class="label">Sellers</div></div>
+          <div class="hero-stat"><div class="num">4.8★</div><div class="label">Rating</div></div>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div class="hero-image-grid">
+          <img src="https://picsum.photos/seed/hero1/300/300" alt="">
+          <img src="https://picsum.photos/seed/hero2/300/300" alt="">
+          <img src="https://picsum.photos/seed/hero3/300/300" alt="">
+          <img src="https://picsum.photos/seed/hero4/300/300" alt="">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="container">
+    <!-- Categories -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Shop by Category</h2>
+        <a href="products.html" class="view-all">View All <i class="fas fa-chevron-right"></i></a>
+      </div>
+      <div class="categories-grid" id="categories-grid"></div>
+    </section>
+
+    <!-- Flash Sale -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">⚡ Flash Sale</h2>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div id="countdown" style="display:flex;gap:8px;font-size:0.9rem;font-weight:700;color:var(--primary)"></div>
+          <a href="products.html?sort=discount" class="view-all">See All <i class="fas fa-chevron-right"></i></a>
+        </div>
+      </div>
+      <div class="products-grid" id="flash-sale-grid"></div>
+    </section>
+
+    <!-- Promo Banners -->
+    <section class="section">
+      <div class="promo-grid">
+        <a href="products.html?category=electronics" class="promo-card" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
+          <span class="promo-label">Top Tech Picks</span>
+          <h3>Latest Electronics</h3>
+          <p>Phones, laptops, gadgets & more</p>
+          <span class="promo-cta">Shop Now <i class="fas fa-arrow-right"></i></span>
+        </a>
+        <a href="products.html?category=fashion" class="promo-card" style="background:linear-gradient(135deg,#9b59b6,#6c3483)">
+          <span class="promo-label">New Collection</span>
+          <h3>Fashion Forward</h3>
+          <p>Trending styles for every occasion</p>
+          <span class="promo-cta">Explore <i class="fas fa-arrow-right"></i></span>
+        </a>
+        <a href="products.html?category=home" class="promo-card" style="background:linear-gradient(135deg,#27ae60,#1e8449)">
+          <span class="promo-label">Home Upgrade</span>
+          <h3>Home & Kitchen</h3>
+          <p>Everything for your home</p>
+          <span class="promo-cta">Discover <i class="fas fa-arrow-right"></i></span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">🌟 Featured Products</h2>
+        <a href="products.html" class="view-all">View All <i class="fas fa-chevron-right"></i></a>
+      </div>
+      <div class="products-grid" id="featured-grid"></div>
+    </section>
+
+    <!-- Top Sellers -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">🏆 Top Sellers</h2>
+      </div>
+      <div class="sellers-grid" id="sellers-grid"></div>
+    </section>
+
+    <!-- Bestsellers by Category -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">🔥 Bestsellers</h2>
+        <a href="products.html?sort=popular" class="view-all">View All <i class="fas fa-chevron-right"></i></a>
+      </div>
+      <div class="products-grid" id="bestsellers-grid"></div>
+    </section>
+
+    <!-- Recently Viewed -->
+    <section class="section" id="recently-viewed-section" style="display:none">
+      <div class="section-header">
+        <h2 class="section-title">👁️ Recently Viewed</h2>
+      </div>
+      <div class="products-grid" id="recently-viewed-grid"></div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="section">
+      <div style="background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:var(--radius-xl);padding:40px;text-align:center;color:white">
+        <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:8px">📬 Get Exclusive Deals</h2>
+        <p style="opacity:0.9;margin-bottom:20px">Subscribe and get 10% off your first order! Use code <strong>WELCOME10</strong></p>
+        <div style="display:flex;gap:8px;max-width:400px;margin:0 auto">
+          <input type="email" placeholder="Enter your email..." style="flex:1;padding:12px 16px;border:none;border-radius:var(--radius-full);font-size:0.9rem;outline:none">
+          <button onclick="showNotification('Thanks! Use code WELCOME10 for 10% off!','success')" style="background:white;color:var(--primary);border:none;padding:12px 20px;border-radius:var(--radius-full);font-weight:700;cursor:pointer">Subscribe</button>
+        </div>
+        <p style="font-size:0.8rem;opacity:0.7;margin-top:10px">Available coupons: WELCOME10 · SAVE200 · FREESHIP · FLASH50 · SUMMER15</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="main-footer"></div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      renderFooter();
+      renderCategories();
+      renderFlashSale();
+      renderFeatured();
+      renderSellers();
+      renderBestsellers();
+      renderRecentlyViewed();
+      startCountdown();
+    });
+
+    function renderCategories() {
+      const el = document.getElementById('categories-grid');
+      el.innerHTML = DEMO_CATEGORIES.map(c => `
+        <a href="products.html?category=${c.id}" class="category-card">
+          <div class="category-icon" style="background:${c.color}20">${c.icon}</div>
+          <span class="category-name">${c.name}</span>
+          <span style="font-size:0.7rem;color:var(--text-muted)">${c.count} items</span>
+        </a>
+      `).join('');
+    }
+
+    function renderFlashSale() {
+      const products = sortProducts(getProducts(), 'discount').slice(0, 6);
+      document.getElementById('flash-sale-grid').innerHTML = products.map(p => renderProductCard(p)).join('');
+    }
+
+    function renderFeatured() {
+      const products = getProducts().filter(p => p.rating >= 4.7).slice(0, 8);
+      document.getElementById('featured-grid').innerHTML = products.map(p => renderProductCard(p)).join('');
+    }
+
+    function renderSellers() {
+      const sellers = getSellers();
+      document.getElementById('sellers-grid').innerHTML = sellers.map(s => `
+        <a href="seller.html?id=${s.id}" class="seller-card">
+          <img src="${s.avatar}" class="seller-avatar" alt="${s.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=2563EB&color=fff'">
+          <div class="seller-name">${s.name}</div>
+          <div class="seller-meta">${renderStars(s.rating)} ${s.rating}</div>
+          <div class="seller-meta">${s.totalSales.toLocaleString()} sales</div>
+          ${s.verified ? '<div class="seller-verified"><i class="fas fa-check-circle"></i> Verified</div>' : ''}
+        </a>
+      `).join('');
+    }
+
+    function renderBestsellers() {
+      const products = sortProducts(getProducts(), 'popular').slice(0, 8);
+      document.getElementById('bestsellers-grid').innerHTML = products.map(p => renderProductCard(p)).join('');
+    }
+
+    function renderRecentlyViewed() {
+      const products = getRecentlyViewed().slice(0, 6);
+      if (products.length > 0) {
+        document.getElementById('recently-viewed-section').style.display = 'block';
+        document.getElementById('recently-viewed-grid').innerHTML = products.map(p => renderProductCard(p)).join('');
+      }
+    }
+
+    function startCountdown() {
+      const end = new Date();
+      end.setHours(23, 59, 59, 0);
+      function update() {
+        const now = new Date();
+        let diff = Math.max(0, end - now);
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        document.getElementById('countdown').innerHTML = `
+          <span style="background:var(--primary);color:white;padding:4px 8px;border-radius:4px">${String(h).padStart(2,'0')}</span>:
+          <span style="background:var(--primary);color:white;padding:4px 8px;border-radius:4px">${String(m).padStart(2,'0')}</span>:
+          <span style="background:var(--primary);color:white;padding:4px 8px;border-radius:4px">${String(s).padStart(2,'0')}</span>
+        `;
+      }
+      update();
+      setInterval(update, 1000);
+    }
+  </script>
+</body>
+</html>

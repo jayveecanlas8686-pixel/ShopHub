@@ -1,0 +1,246 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - ShopHub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="main-header"></div>
+
+  <main class="container" style="padding:20px 16px 40px">
+    <div class="breadcrumb">
+      <a href="index.html">Home</a>
+      <span class="breadcrumb-sep"><i class="fas fa-chevron-right"></i></span>
+      <span class="breadcrumb-current">My Profile</span>
+    </div>
+
+    <div id="profile-wrap">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+  </main>
+
+  <div id="main-footer"></div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      renderFooter();
+      if (!requireAuth()) return;
+      renderProfile();
+    });
+
+    function renderProfile() {
+      const user = getCurrentUser();
+      const myOrders = getUserOrders(user.id);
+      const myWishlist = getWishlist();
+      const notifications = getStoredNotifications();
+      const unread = notifications.filter(n => !n.read).length;
+
+      document.getElementById('profile-wrap').innerHTML = `
+        <div class="profile-layout">
+          <div class="profile-sidebar">
+            <div class="profile-avatar-wrap">
+              <img src="${user.avatar}" class="profile-avatar" alt="${user.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=2563EB&color=fff'">
+              <h3 style="font-weight:700;margin-bottom:4px">${user.name}</h3>
+              <p style="font-size:0.82rem;color:var(--text-muted)">${user.email}</p>
+              <span class="badge-role badge-role-${user.role}" style="margin-top:6px;display:inline-block">${user.role}</span>
+            </div>
+            <nav class="profile-nav">
+              <a href="#" class="active" onclick="showTab('info',this)"><i class="fas fa-user"></i> Personal Info</a>
+              <a href="orders.html"><i class="fas fa-box"></i> My Orders <span style="font-size:0.75rem;color:var(--text-muted)">(${myOrders.length})</span></a>
+              <a href="wishlist.html"><i class="fas fa-heart"></i> Wishlist <span style="font-size:0.75rem;color:var(--text-muted)">(${myWishlist.length})</span></a>
+              <a href="#" onclick="showTab('address',this)"><i class="fas fa-map-marker-alt"></i> Address</a>
+              <a href="#" onclick="showTab('security',this)"><i class="fas fa-lock"></i> Security</a>
+              <a href="#" onclick="showTab('notifications',this)"><i class="fas fa-bell"></i> Notifications ${unread > 0 ? `<span class="badge-count" style="display:inline-flex;position:static;margin-left:4px">${unread}</span>` : ''}</a>
+              ${user.role === 'seller' ? '<a href="seller-dashboard.html"><i class="fas fa-store"></i> Seller Center</a>' : ''}
+              ${user.role === 'admin' ? '<a href="admin-dashboard.html"><i class="fas fa-cog"></i> Admin Panel</a>' : ''}
+              <a href="#" onclick="logout()" class="text-danger" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+          </div>
+          <div class="profile-content">
+            <!-- Personal Info Tab -->
+            <div class="tab-panel active" id="tab-info">
+              <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Personal Information</h2>
+              <div id="info-msg"></div>
+              <form onsubmit="savePersonalInfo(event)">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="p-name" class="form-control" value="${user.name}">
+                  </div>
+                  <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" class="form-control" value="${user.email}" readonly style="background:var(--gray-100);cursor:not-allowed">
+                  </div>
+                  <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="p-phone" class="form-control" value="${user.phone || ''}">
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+              </form>
+
+              <div class="divider mt-20"></div>
+              <h3 style="font-size:1rem;font-weight:700;margin-bottom:12px">Account Stats</h3>
+              <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+                <div class="stat-card"><div class="stat-icon" style="background:var(--primary-bg);color:var(--primary)"><i class="fas fa-box"></i></div><div class="stat-info"><div class="stat-val">${myOrders.length}</div><div class="stat-label">Orders</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#FCE4EC;color:#E91E63"><i class="fas fa-heart"></i></div><div class="stat-info"><div class="stat-val">${myWishlist.length}</div><div class="stat-label">Wishlist</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#E8F5E9;color:var(--success)"><i class="fas fa-check-circle"></i></div><div class="stat-info"><div class="stat-val">${myOrders.filter(o=>o.status==='delivered').length}</div><div class="stat-label">Delivered</div></div></div>
+              </div>
+            </div>
+
+            <!-- Address Tab -->
+            <div class="tab-panel" id="tab-address">
+              <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Shipping Address</h2>
+              <div id="addr-msg"></div>
+              <form onsubmit="saveAddress(event)">
+                <div class="form-group">
+                  <label>Street Address</label>
+                  <input type="text" id="a-street" class="form-control" value="${user.address ? user.address.street : ''}" placeholder="House #, Street, Barangay">
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>City</label>
+                    <input type="text" id="a-city" class="form-control" value="${user.address ? user.address.city : ''}" placeholder="Manila">
+                  </div>
+                  <div class="form-group">
+                    <label>Province</label>
+                    <input type="text" id="a-province" class="form-control" value="${user.address ? user.address.province : ''}" placeholder="Metro Manila">
+                  </div>
+                  <div class="form-group">
+                    <label>ZIP Code</label>
+                    <input type="text" id="a-zip" class="form-control" value="${user.address ? user.address.zip : ''}" placeholder="1000">
+                  </div>
+                  <div class="form-group">
+                    <label>Country</label>
+                    <input type="text" class="form-control" value="Philippines" readonly style="background:var(--gray-100)">
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Address</button>
+              </form>
+            </div>
+
+            <!-- Security Tab -->
+            <div class="tab-panel" id="tab-security">
+              <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Change Password</h2>
+              <div id="sec-msg"></div>
+              <form onsubmit="changePassword(event)" style="max-width:400px">
+                <div class="form-group">
+                  <label>Current Password</label>
+                  <input type="password" id="s-current" class="form-control" placeholder="Your current password">
+                </div>
+                <div class="form-group">
+                  <label>New Password</label>
+                  <input type="password" id="s-new" class="form-control" placeholder="New password (min 6 chars)" minlength="6">
+                </div>
+                <div class="form-group">
+                  <label>Confirm New Password</label>
+                  <input type="password" id="s-confirm" class="form-control" placeholder="Confirm new password">
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-lock"></i> Change Password</button>
+              </form>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div class="tab-panel" id="tab-notifications">
+              <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">Notifications</h2>
+              <div id="notifications-list"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      renderNotifications();
+    }
+
+    function showTab(tab, link) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.profile-nav a').forEach(a => a.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      if (link) link.classList.add('active');
+    }
+
+    function savePersonalInfo(e) {
+      e.preventDefault();
+      const result = updateProfile({ name: document.getElementById('p-name').value, phone: document.getElementById('p-phone').value });
+      if (result.success) {
+        document.getElementById('info-msg').innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Profile updated!</div>';
+        showNotification('Profile saved!', 'success');
+        renderHeader();
+      } else {
+        document.getElementById('info-msg').innerHTML = `<div class="alert alert-error">${result.message}</div>`;
+      }
+    }
+
+    function saveAddress(e) {
+      e.preventDefault();
+      const result = updateProfile({ address: {
+        street: document.getElementById('a-street').value,
+        city: document.getElementById('a-city').value,
+        province: document.getElementById('a-province').value,
+        zip: document.getElementById('a-zip').value,
+        country: 'Philippines'
+      }});
+      if (result.success) {
+        document.getElementById('addr-msg').innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Address saved!</div>';
+        showNotification('Address saved!', 'success');
+      }
+    }
+
+    function changePassword(e) {
+      e.preventDefault();
+      const current = document.getElementById('s-current').value;
+      const newPass = document.getElementById('s-new').value;
+      const confirm = document.getElementById('s-confirm').value;
+      if (newPass !== confirm) {
+        document.getElementById('sec-msg').innerHTML = '<div class="alert alert-error">Passwords do not match.</div>';
+        return;
+      }
+      const result = updateProfile({ password: current, newPassword: newPass });
+      if (result.success) {
+        document.getElementById('sec-msg').innerHTML = '<div class="alert alert-success">Password changed!</div>';
+        document.getElementById('s-current').value = '';
+        document.getElementById('s-new').value = '';
+        document.getElementById('s-confirm').value = '';
+      } else {
+        document.getElementById('sec-msg').innerHTML = `<div class="alert alert-error">${result.message}</div>`;
+      }
+    }
+
+    function renderNotifications() {
+      const notifications = getStoredNotifications();
+      const el = document.getElementById('notifications-list');
+      if (!el) return;
+      const icons = { order: '📦', promo: '🎉', system: 'ℹ️' };
+      el.innerHTML = notifications.map(n => `
+        <div style="display:flex;gap:12px;padding:14px;border-bottom:1px solid var(--border);background:${n.read?'transparent':'var(--primary-bg)'};" onclick="markRead(${n.id}, this)">
+          <span style="font-size:1.3rem;flex-shrink:0">${icons[n.type]||'🔔'}</span>
+          <div style="flex:1">
+            <p style="font-size:0.9rem;${n.read?'':'font-weight:500'}">${n.message}</p>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${n.time}</p>
+          </div>
+          ${!n.read ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:6px"></span>' : ''}
+        </div>
+      `).join('') || '<p style="color:var(--text-muted);padding:20px 0">No notifications.</p>';
+    }
+
+    function markRead(id, el) {
+      markNotificationRead(id);
+      el.style.background = 'transparent';
+      const dot = el.querySelector('[style*="border-radius:50%"]');
+      if (dot) dot.remove();
+      const text = el.querySelector('p');
+      if (text) text.style.fontWeight = 'normal';
+    }
+  </script>
+</body>
+</html>

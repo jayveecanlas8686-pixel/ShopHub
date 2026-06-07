@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Profile - ShopHub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="main-header"></div>
+
+  <main class="container" style="padding:20px 16px 40px">
+    <div id="seller-profile-content">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+  </main>
+
+  <div id="main-footer"></div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      renderFooter();
+      const sellerId = getUrlParam('id');
+      if (!sellerId) { window.location.href = 'index.html'; return; }
+      const seller = getSellerById(sellerId);
+      if (!seller) { window.location.href = 'index.html'; return; }
+      renderSellerProfile(seller);
+    });
+
+    function renderSellerProfile(seller) {
+      document.title = seller.name + ' - ShopHub';
+      const products = getSellerProducts(seller.id);
+      const avgRating = products.length ? products.reduce((s,p) => s + p.rating, 0) / products.length : seller.rating;
+
+      document.getElementById('seller-profile-content').innerHTML = `
+        <div class="breadcrumb">
+          <a href="index.html">Home</a>
+          <span class="breadcrumb-sep"><i class="fas fa-chevron-right"></i></span>
+          <span class="breadcrumb-current">${seller.name}</span>
+        </div>
+
+        <!-- Seller Header -->
+        <div class="seller-profile-header">
+          <div class="seller-profile-top">
+            <img src="${seller.avatar}" class="seller-profile-avatar" alt="${seller.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(seller.name)}&background=2563EB&color=fff'">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <h2 style="font-size:1.4rem;font-weight:800">${seller.name}</h2>
+                ${seller.verified ? '<span style="background:var(--info);color:white;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:700"><i class="fas fa-check-circle"></i> Verified</span>' : ''}
+              </div>
+              <p style="color:var(--text-muted);font-size:0.9rem;margin-top:4px">${seller.description || 'Welcome to my store!'}</p>
+              <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;font-size:0.85rem;color:var(--text-muted)">
+                <span><i class="fas fa-map-marker-alt"></i> ${seller.location}</span>
+                <span><i class="fas fa-calendar"></i> Joined ${new Date(seller.joinedDate).toLocaleDateString('en-PH', { year:'numeric', month:'long' })}</span>
+                <span><i class="fas fa-clock"></i> Responds ${seller.responseTime}</span>
+              </div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--primary-bg);border-radius:var(--radius-lg);min-width:100px">
+              <div style="font-size:2rem;font-weight:800;color:var(--primary)">${seller.rating}</div>
+              <div>${renderStars(seller.rating)}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">Rating</div>
+            </div>
+          </div>
+          <div class="seller-profile-stats">
+            <div class="seller-stat-item"><div class="seller-stat-val">${seller.totalSales.toLocaleString()}</div><div class="seller-stat-label">Total Sales</div></div>
+            <div class="seller-stat-item"><div class="seller-stat-val">${seller.followers.toLocaleString()}</div><div class="seller-stat-label">Followers</div></div>
+            <div class="seller-stat-item"><div class="seller-stat-val">${products.length}</div><div class="seller-stat-label">Products</div></div>
+            <div class="seller-stat-item"><div class="seller-stat-val">${avgRating.toFixed(1)}★</div><div class="seller-stat-label">Avg Rating</div></div>
+          </div>
+        </div>
+
+        <!-- Seller Products -->
+        <div class="section-header" style="margin-top:24px">
+          <h2 class="section-title">Products from ${seller.name}</h2>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" placeholder="Search in store..." class="form-control" style="width:200px;padding:8px 12px" oninput="filterSellerProducts(this.value, ${seller.id})">
+          </div>
+        </div>
+
+        ${products.length ? `
+          <div class="products-grid" id="seller-products-grid">
+            ${products.map(p => renderProductCard(p)).join('')}
+          </div>
+        ` : `
+          <div class="no-results">
+            <div class="no-results-icon">📦</div>
+            <p>No products available from this seller yet.</p>
+          </div>
+        `}
+      `;
+    }
+
+    function filterSellerProducts(query, sellerId) {
+      const products = getSellerProducts(sellerId);
+      const filtered = searchProducts(query, products);
+      const el = document.getElementById('seller-products-grid');
+      if (el) el.innerHTML = filtered.map(p => renderProductCard(p)).join('') || '<p style="color:var(--text-muted)">No products found.</p>';
+    }
+  </script>
+</body>
+</html>

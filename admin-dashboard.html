@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - ShopHub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .admin-page { background: var(--gray-100); min-height: 100vh; }
+    .admin-layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 120px); }
+    .admin-sidebar { background: #1A1A2E; padding: 0; color: white; }
+    .admin-sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .admin-sidebar-header h3 { font-size: 0.85rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
+    .admin-nav a { display: flex; align-items: center; gap: 10px; padding: 12px 20px; color: rgba(255,255,255,0.7); font-size: 0.88rem; transition: var(--transition); border-left: 3px solid transparent; }
+    .admin-nav a:hover, .admin-nav a.active { background: rgba(238,77,45,0.15); color: white; border-left-color: var(--primary); }
+    .admin-nav a i { width: 18px; }
+    .admin-nav .nav-group { padding: 12px 20px 4px; font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
+    .admin-content { padding: 24px; overflow-y: auto; }
+    @media (max-width: 768px) {
+      .admin-layout { grid-template-columns: 1fr; }
+      .admin-sidebar { display: none; }
+    }
+  </style>
+</head>
+<body class="admin-page">
+  <div id="main-header"></div>
+
+  <div id="access-denied" style="display:none;padding:40px;text-align:center">
+    <div style="font-size:3rem;margin-bottom:16px">🔒</div>
+    <h2>Access Denied</h2>
+    <p style="color:var(--text-muted);margin-bottom:20px">Admin access required. Login with: <strong>admin@example.com / password123</strong></p>
+    <a href="login.html" class="btn btn-primary">Login as Admin</a>
+  </div>
+
+  <div class="admin-layout" id="admin-layout" style="display:none">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-header">
+        <div style="font-size:1.2rem;font-weight:800;color:white;margin-bottom:4px">🛍️ ShopHub</div>
+        <h3>Admin Panel</h3>
+        <div id="admin-user-info" style="margin-top:8px;font-size:0.82rem;color:rgba(255,255,255,0.6)"></div>
+      </div>
+      <nav class="admin-nav">
+        <div class="nav-group">Dashboard</div>
+        <a href="#" class="active" onclick="showAdminTab('overview', this)"><i class="fas fa-tachometer-alt"></i> Overview</a>
+        <div class="nav-group">Management</div>
+        <a href="#" onclick="showAdminTab('products', this)"><i class="fas fa-box"></i> Products</a>
+        <a href="#" onclick="showAdminTab('orders', this)"><i class="fas fa-shopping-bag"></i> Orders</a>
+        <a href="#" onclick="showAdminTab('users', this)"><i class="fas fa-users"></i> Users</a>
+        <a href="#" onclick="showAdminTab('sellers', this)"><i class="fas fa-store"></i> Sellers</a>
+        <div class="nav-group">Analytics</div>
+        <a href="#" onclick="showAdminTab('analytics', this)"><i class="fas fa-chart-bar"></i> Charts</a>
+        <a href="#" onclick="showAdminTab('coupons', this)"><i class="fas fa-tag"></i> Coupons</a>
+        <div style="padding:20px;margin-top:auto">
+          <a href="index.html" style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.6);font-size:0.85rem"><i class="fas fa-arrow-left"></i> Back to Store</a>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="admin-content">
+      <!-- Overview Tab -->
+      <div class="tab-panel active" id="admin-tab-overview">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+          <div>
+            <h1 style="font-size:1.4rem;font-weight:800">Dashboard Overview</h1>
+            <p style="color:var(--text-muted);font-size:0.85rem" id="admin-date"></p>
+          </div>
+          <button class="btn btn-secondary" onclick="location.reload()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        <div id="admin-stats" class="stats-grid"></div>
+
+        <!-- Quick Stats Row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px" id="quick-stats"></div>
+
+        <!-- Recent Orders Preview -->
+        <div class="dash-card" style="margin-top:20px">
+          <div class="dash-card-header">
+            <h3><i class="fas fa-clock"></i> Recent Orders</h3>
+            <button class="btn-sm btn-outline" onclick="showAdminTab('orders', document.querySelector('.admin-nav a:nth-child(4)'))">View All</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="recent-orders-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Tab -->
+      <div class="tab-panel" id="admin-tab-products" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h1 style="font-size:1.3rem;font-weight:800">Manage Products</h1>
+          <input type="text" placeholder="Search products..." class="form-control" style="width:220px;padding:8px 12px" oninput="adminSearchProducts(this.value)">
+        </div>
+        <div class="dash-card">
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Seller</th><th>Stock</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="admin-products-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div class="tab-panel" id="admin-tab-orders" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h1 style="font-size:1.3rem;font-weight:800">Manage Orders</h1>
+          <div style="display:flex;gap:8px">
+            <select class="sort-select" id="order-status-filter" onchange="filterAdminOrders(this.value)">
+              <option value="all">All Status</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th>Update</th></tr></thead>
+              <tbody id="admin-orders-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div class="tab-panel" id="admin-tab-users" style="display:none">
+        <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:20px">Manage Users</h1>
+        <div class="dash-card">
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th><th>Action</th></tr></thead>
+              <tbody id="admin-users-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sellers Tab -->
+      <div class="tab-panel" id="admin-tab-sellers" style="display:none">
+        <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:20px">Manage Sellers</h1>
+        <div class="dash-card">
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>Seller</th><th>Email</th><th>Products</th><th>Sales</th><th>Rating</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="admin-sellers-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Tab -->
+      <div class="tab-panel" id="admin-tab-analytics" style="display:none">
+        <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:20px">Analytics & Charts</h1>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="dash-card">
+            <div class="dash-card-header"><h3><i class="fas fa-box"></i> Products by Category</h3></div>
+            <div class="chart-wrap" id="category-chart"></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-header"><h3><i class="fas fa-shopping-bag"></i> Orders by Status</h3></div>
+            <div class="chart-wrap" id="order-status-chart"></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-header"><h3><i class="fas fa-star"></i> Top Rated Products</h3></div>
+            <div style="padding:16px" id="top-rated-chart"></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-header"><h3><i class="fas fa-fire"></i> Best Sellers</h3></div>
+            <div style="padding:16px" id="best-sellers-chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coupons Tab -->
+      <div class="tab-panel" id="admin-tab-coupons" style="display:none">
+        <h1 style="font-size:1.3rem;font-weight:800;margin-bottom:20px">Coupon Codes</h1>
+        <div class="dash-card">
+          <div class="dash-card-header"><h3><i class="fas fa-tag"></i> Active Coupons</h3></div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min Order</th><th>Description</th><th>Uses</th></tr></thead>
+              <tbody>
+                ${DEMO_COUPONS.map(c => `
+                  <tr>
+                    <td><strong style="background:var(--primary-bg);color:var(--primary);padding:3px 8px;border-radius:4px;font-family:monospace">${c.code}</strong></td>
+                    <td>${c.type}</td>
+                    <td>${c.type === 'percent' ? c.value + '%' : '���' + c.value}</td>
+                    <td>${formatPrice(c.minOrder)}</td>
+                    <td>${c.description}</td>
+                    <td>${c.usedCount} / ${c.maxUses}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      renderHeader();
+      renderCartCount();
+      renderWishlistCount();
+      initializeData();
+
+      const user = getCurrentUser();
+      if (!user || user.role !== 'admin') {
+        document.getElementById('access-denied').style.display = 'block';
+        return;
+      }
+      document.getElementById('admin-layout').style.display = 'grid';
+      document.getElementById('admin-user-info').textContent = user.name;
+      document.getElementById('admin-date').textContent = new Date().toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+      initAdminDashboard();
+      renderRecentOrders();
+      renderQuickStats();
+      renderTopRatedChart();
+      renderBestSellersChart();
+    });
+
+    function showAdminTab(tab, link) {
+      document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
+      document.querySelectorAll('.admin-nav a').forEach(a => a.classList.remove('active'));
+      const el = document.getElementById('admin-tab-' + tab);
+      if (el) { el.classList.add('active'); el.style.display = 'block'; }
+      if (link) link.classList.add('active');
+    }
+
+    function renderRecentOrders() {
+      const orders = getOrders().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 8);
+      const el = document.getElementById('recent-orders-table');
+      if (!el) return;
+      el.innerHTML = orders.map(o => `
+        <tr>
+          <td><strong style="color:var(--primary)">${o.id}</strong></td>
+          <td>${o.shippingAddress ? o.shippingAddress.name : '—'}</td>
+          <td>${o.items.length} item(s)</td>
+          <td style="font-weight:700">${formatPrice(o.total)}</td>
+          <td>${getOrderStatusBadge(o.status)}</td>
+          <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderQuickStats() {
+      const orders = getOrders();
+      const today = new Date().toISOString().split('T')[0];
+      const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
+      const todayRevenue = todayOrders.filter(o => o.status !== 'cancelled').reduce((s,o) => s+o.total, 0);
+      const products = getProducts();
+      const lowStock = products.filter(p => p.stock <= 10 && p.stock > 0);
+      const outOfStock = products.filter(p => p.stock === 0);
+
+      document.getElementById('quick-stats').innerHTML = `
+        <div class="dash-card" style="padding:16px">
+          <h3 style="font-size:0.9rem;color:var(--text-muted);margin-bottom:12px"><i class="fas fa-calendar-day"></i> Today's Summary</h3>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:0.9rem">New Orders</span>
+            <strong>${todayOrders.length}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:0.9rem">Today Revenue</span>
+            <strong style="color:var(--success)">${formatPrice(todayRevenue)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0">
+            <span style="font-size:0.9rem">Total Sellers</span>
+            <strong>${getSellers().length}</strong>
+          </div>
+        </div>
+        <div class="dash-card" style="padding:16px">
+          <h3 style="font-size:0.9rem;color:var(--text-muted);margin-bottom:12px"><i class="fas fa-exclamation-triangle"></i> Inventory Alerts</h3>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:0.9rem">Low Stock (≤10)</span>
+            <strong style="color:var(--warning)">${lowStock.length}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:0.9rem">Out of Stock</span>
+            <strong style="color:var(--danger)">${outOfStock.length}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0">
+            <span style="font-size:0.9rem">Total Active Products</span>
+            <strong>${products.length}</strong>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTopRatedChart() {
+      const el = document.getElementById('top-rated-chart');
+      if (!el) return;
+      const products = sortProducts(getProducts(), 'rating').slice(0, 6);
+      const max = 5;
+      el.innerHTML = products.map(p => `
+        <div class="chart-bar-row">
+          <span class="chart-label" style="min-width:140px;font-size:0.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name.length > 20 ? p.name.substring(0,20) + '…' : p.name}</span>
+          <div class="chart-bar-wrap"><div class="chart-bar" style="width:${(p.rating/max)*100}%;background:var(--warning)">${p.rating}★</div></div>
+        </div>
+      `).join('');
+    }
+
+    function renderBestSellersChart() {
+      const el = document.getElementById('best-sellers-chart');
+      if (!el) return;
+      const products = sortProducts(getProducts(), 'popular').slice(0, 6);
+      const maxSold = products[0] ? products[0].sold || 1 : 1;
+      el.innerHTML = products.map(p => `
+        <div class="chart-bar-row">
+          <span class="chart-label" style="min-width:140px;font-size:0.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name.length > 20 ? p.name.substring(0,20) + '…' : p.name}</span>
+          <div class="chart-bar-wrap"><div class="chart-bar" style="width:${((p.sold||0)/maxSold)*100}%;background:var(--primary)">${(p.sold||0).toLocaleString()}</div></div>
+        </div>
+      `).join('');
+    }
+
+    function filterAdminOrders(status) {
+      const allOrders = getOrders();
+      const filtered = status === 'all' ? allOrders : allOrders.filter(o => o.status === status);
+      const sorted = filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const el = document.getElementById('admin-orders-table');
+      if (!el) return;
+      el.innerHTML = sorted.slice(0, 30).map(o => `
+        <tr>
+          <td><strong>${o.id}</strong></td>
+          <td>${o.shippingAddress ? o.shippingAddress.name : '���'}</td>
+          <td>${o.items.length} item(s)</td>
+          <td>${formatPrice(o.total)}</td>
+          <td>${getOrderStatusBadge(o.status)}</td>
+          <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+          <td>
+            <select class="select-sm" onchange="adminUpdateOrderStatus('${o.id}', this.value)">
+              ${['processing','shipped','delivered','cancelled'].map(s => `<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" class="text-center text-muted">No orders found</td></tr>';
+    }
+  </script>
+</body>
+</html>

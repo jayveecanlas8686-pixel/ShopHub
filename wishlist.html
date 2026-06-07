@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wishlist - ShopHub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="main-header"></div>
+
+  <main class="container" style="padding:20px 16px 40px">
+    <div class="breadcrumb">
+      <a href="index.html">Home</a>
+      <span class="breadcrumb-sep"><i class="fas fa-chevron-right"></i></span>
+      <span class="breadcrumb-current">My Wishlist</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <h1 class="page-title" style="margin:0"><i class="fas fa-heart" style="color:var(--primary)"></i> My Wishlist <span id="wishlist-header-count" style="font-size:1rem;font-weight:500;color:var(--text-muted)"></span></h1>
+      <button class="btn btn-secondary" id="clear-wishlist-btn" onclick="clearWishlist()" style="display:none"><i class="fas fa-trash"></i> Clear Wishlist</button>
+    </div>
+    <div id="wishlist-content">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+  </main>
+
+  <div id="main-footer"></div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      renderFooter();
+      renderWishlistPage();
+    });
+
+    function renderWishlistPage() {
+      const wishlist = getWishlist();
+      const count = wishlist.length;
+      document.getElementById('wishlist-header-count').textContent = count ? `(${count} item${count>1?'s':''})` : '';
+      document.getElementById('clear-wishlist-btn').style.display = count ? 'flex' : 'none';
+
+      if (!count) {
+        document.getElementById('wishlist-content').innerHTML = `
+          <div class="empty-cart">
+            <div class="empty-icon">💔</div>
+            <h3>Your wishlist is empty</h3>
+            <p style="color:var(--text-muted);margin-bottom:20px">Save items you love and shop them later</p>
+            <a href="products.html" class="btn btn-primary btn-lg"><i class="fas fa-shopping-bag"></i> Browse Products</a>
+          </div>
+        `;
+        return;
+      }
+
+      const products = wishlist.map(id => getProduct(id)).filter(Boolean);
+      document.getElementById('wishlist-content').innerHTML = `
+        <div style="margin-bottom:16px">
+          <button class="btn btn-primary" onclick="addAllToCart()"><i class="fas fa-cart-plus"></i> Add All to Cart</button>
+        </div>
+        <div class="wishlist-grid">
+          ${products.map(p => renderWishlistCard(p)).join('')}
+        </div>
+      `;
+    }
+
+    function renderWishlistCard(product) {
+      return `
+        <div class="product-card" id="wl-card-${product.id}">
+          <div class="product-card-image-wrap">
+            <a href="product.html?id=${product.id}">
+              <img src="${product.image}" alt="${product.name}" loading="lazy" onerror="this.src='https://picsum.photos/seed/default/400/400'">
+            </a>
+            ${product.discount > 0 ? `<span class="badge badge-sale">-${product.discount}%</span>` : ''}
+            <button class="wishlist-btn active" onclick="removeFromWishlistPage(${product.id})" title="Remove from wishlist" style="opacity:1">
+              <i class="fas fa-heart"></i>
+            </button>
+          </div>
+          <div class="product-card-body">
+            <a href="product.html?id=${product.id}" class="product-name">${product.name}</a>
+            <div class="product-rating">
+              ${renderStars(product.rating)}
+              <span class="rating-val">${product.rating}</span>
+              <span class="review-count">(${(product.reviewCount||0).toLocaleString()})</span>
+            </div>
+            <div class="product-price-wrap">
+              <span class="product-price">${formatPrice(product.price)}</span>
+              ${product.originalPrice > product.price ? `<span class="product-original-price">${formatPrice(product.originalPrice)}</span>` : ''}
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn-add-cart" style="flex:1" onclick="addWishlistItemToCart(${product.id})">
+                <i class="fas fa-cart-plus"></i> Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function removeFromWishlistPage(productId) {
+      removeFromWishlist(productId);
+      const card = document.getElementById('wl-card-' + productId);
+      if (card) card.remove();
+      showNotification('Removed from wishlist.', 'info');
+      const remaining = getWishlist().length;
+      document.getElementById('wishlist-header-count').textContent = remaining ? `(${remaining} item${remaining>1?'s':''})` : '';
+      if (!remaining) renderWishlistPage();
+    }
+
+    function addWishlistItemToCart(productId) {
+      const product = getProduct(productId);
+      if (product) addToCart(product, 1);
+    }
+
+    function addAllToCart() {
+      const wishlist = getWishlist();
+      let added = 0;
+      wishlist.forEach(id => {
+        const p = getProduct(id);
+        if (p && p.stock > 0) { addToCart(p, 1); added++; }
+      });
+      showNotification(`${added} item${added>1?'s':''} added to cart!`, 'success');
+    }
+
+    function clearWishlist() {
+      if (confirm('Clear your entire wishlist?')) {
+        localStorage.removeItem(WISHLIST_KEY);
+        renderWishlistCount();
+        renderWishlistPage();
+        showNotification('Wishlist cleared.', 'info');
+      }
+    }
+  </script>
+</body>
+</html>

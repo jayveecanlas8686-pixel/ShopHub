@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Cart - ShopHub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="main-header"></div>
+
+  <main class="container" style="padding-top:20px;padding-bottom:40px">
+    <div class="breadcrumb">
+      <a href="index.html">Home</a>
+      <span class="breadcrumb-sep"><i class="fas fa-chevron-right"></i></span>
+      <span class="breadcrumb-current">Shopping Cart</span>
+    </div>
+    <h1 class="page-title">🛒 Shopping Cart <span id="cart-header-count" style="font-size:1rem;font-weight:500;color:var(--text-muted)"></span></h1>
+
+    <div id="cart-content"></div>
+  </main>
+
+  <div id="main-footer"></div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    let appliedDiscount = 0;
+    let appliedCoupon = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      renderFooter();
+      renderCart();
+    });
+
+    function renderCart() {
+      const cart = getCart();
+      const count = cart.length;
+      document.getElementById('cart-header-count').textContent = count ? `(${count} item${count>1?'s':''})` : '';
+
+      if (!count) {
+        document.getElementById('cart-content').innerHTML = `
+          <div class="empty-cart">
+            <div class="empty-icon">🛒</div>
+            <h3>Your cart is empty</h3>
+            <p style="color:var(--text-muted);margin-bottom:20px">Add items to your cart to continue shopping</p>
+            <a href="products.html" class="btn btn-primary btn-lg"><i class="fas fa-shopping-bag"></i> Browse Products</a>
+          </div>
+        `;
+        return;
+      }
+
+      const summary = getCartSummary(appliedDiscount);
+
+      document.getElementById('cart-content').innerHTML = `
+        <div class="cart-layout">
+          <div class="cart-table-wrap">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <h3 style="font-size:1rem;font-weight:700">${count} Item${count>1?'s':''}</h3>
+              <button class="btn btn-secondary" onclick="confirmClearCart()" style="font-size:0.85rem;padding:6px 12px"><i class="fas fa-trash"></i> Clear Cart</button>
+            </div>
+            <table class="cart-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Price</th>
+                  <th>Quantity</th>
+                  <th>Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="cart-items-body">
+                ${cart.map(item => renderCartRow(item)).join('')}
+              </tbody>
+            </table>
+            <div style="padding:12px 0;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <a href="products.html" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Continue Shopping</a>
+              <button class="btn btn-secondary" onclick="renderCart()"><i class="fas fa-sync"></i> Update Cart</button>
+            </div>
+          </div>
+
+          <div class="cart-summary">
+            <h3>Order Summary</h3>
+            <div class="coupon-form">
+              <input type="text" id="coupon-input" placeholder="Coupon code" maxlength="20" style="text-transform:uppercase">
+              <button class="btn-apply-coupon" onclick="applyCoupon()">Apply</button>
+            </div>
+            ${appliedCoupon ? `<div class="alert alert-success" style="padding:8px 12px;font-size:0.85rem"><i class="fas fa-tag"></i> ${appliedCoupon.description}</div>` : '<p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px">Try: WELCOME10, SAVE200, FREESHIP, FLASH50, SUMMER15</p>'}
+            <div class="summary-row"><span>Subtotal (${summary.itemCount} items)</span><span>${formatPrice(summary.subtotal)}</span></div>
+            <div class="summary-row"><span>Shipping</span><span>${summary.shipping === 0 ? '<span style="color:var(--success)">FREE</span>' : formatPrice(summary.shipping)}</span></div>
+            ${appliedDiscount > 0 ? `<div class="summary-row" style="color:var(--success)"><span><i class="fas fa-tag"></i> Discount</span><span>-${formatPrice(appliedDiscount)}</span></div>` : ''}
+            ${summary.shipping > 0 ? `<div style="font-size:0.75rem;color:var(--text-muted);text-align:right">Add ₱${formatPrice(1000 - summary.subtotal)} more for free shipping</div>` : ''}
+            <div class="summary-row total"><span>Total</span><span>${formatPrice(summary.total)}</span></div>
+            <a href="checkout.html" class="btn btn-primary btn-full btn-lg mt-12"><i class="fas fa-lock"></i> Secure Checkout</a>
+            <div style="display:flex;justify-content:center;gap:12px;margin-top:12px;font-size:0.75rem;color:var(--text-muted)">
+              <span><i class="fas fa-shield-alt"></i> SSL Secure</span>
+              <span><i class="fas fa-undo"></i> Easy Returns</span>
+              <span><i class="fas fa-truck"></i> Fast Delivery</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCartRow(item) {
+      return `
+        <tr id="cart-row-${item.productId}">
+          <td data-label="Product">
+            <div class="cart-item-info">
+              <a href="product.html?id=${item.productId}">
+                <img src="${item.image}" class="cart-item-img" onerror="this.src='https://picsum.photos/seed/default/100/100'" alt="${item.name}">
+              </a>
+              <div>
+                <a href="product.html?id=${item.productId}" class="cart-item-name">${item.name}</a>
+                <div class="cart-item-seller"><i class="fas fa-store"></i> ${item.sellerName || 'Seller'}</div>
+                ${item.originalPrice && item.originalPrice > item.price ? `<div style="font-size:0.75rem;color:var(--success)">Save ${formatPrice(item.originalPrice - item.price)} per item</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td data-label="Price">${formatPrice(item.price)}</td>
+          <td data-label="Quantity">
+            <div class="qty-selector">
+              <button class="qty-btn" onclick="updateCartQty(${item.productId}, ${item.quantity - 1})">−</button>
+              <input type="number" class="qty-input" value="${item.quantity}" min="1" max="${item.stock||99}" onchange="updateCartQty(${item.productId}, this.value)">
+              <button class="qty-btn" onclick="updateCartQty(${item.productId}, ${item.quantity + 1})">+</button>
+            </div>
+          </td>
+          <td data-label="Total" style="font-weight:700;color:var(--primary)">${formatPrice(item.price * item.quantity)}</td>
+          <td data-label="">
+            <button class="cart-item-remove" onclick="removeCartItem(${item.productId})" title="Remove"><i class="fas fa-times"></i></button>
+          </td>
+        </tr>
+      `;
+    }
+
+    function updateCartQty(productId, qty) {
+      qty = parseInt(qty);
+      if (qty < 1) { removeCartItem(productId); return; }
+      updateQuantity(productId, qty);
+      renderCart();
+    }
+
+    function removeCartItem(productId) {
+      removeFromCart(productId);
+      showNotification('Item removed from cart.', 'info');
+      renderCart();
+    }
+
+    function confirmClearCart() {
+      if (confirm('Clear all items from your cart?')) {
+        clearCart();
+        renderCart();
+        showNotification('Cart cleared.', 'info');
+      }
+    }
+
+    function applyCoupon() {
+      const code = document.getElementById('coupon-input').value.trim();
+      if (!code) { showNotification('Please enter a coupon code.', 'warning'); return; }
+      const subtotal = getCartSubtotal();
+      const result = applyDiscount(code, subtotal);
+      if (result.success) {
+        appliedDiscount = result.discountAmount;
+        appliedCoupon = result.coupon;
+        showNotification(`Coupon applied! You saved ${formatPrice(result.discountAmount)}`, 'success');
+        renderCart();
+      } else {
+        showNotification(result.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

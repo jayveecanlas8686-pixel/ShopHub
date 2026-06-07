@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products - ShopHub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="main-header"></div>
+
+  <main class="container">
+    <div class="breadcrumb">
+      <a href="index.html">Home</a>
+      <span class="breadcrumb-sep"><i class="fas fa-chevron-right"></i></span>
+      <span class="breadcrumb-current" id="breadcrumb-current">All Products</span>
+    </div>
+
+    <div class="products-page-layout">
+      <!-- Sidebar Filters -->
+      <aside class="sidebar" id="filters-sidebar">
+        <div class="filter-section">
+          <div class="filter-title">Categories <span class="filter-clear" onclick="clearFilter('category')">Clear</span></div>
+          <div id="category-filters"></div>
+        </div>
+        <div class="filter-section">
+          <div class="filter-title">Price Range <span class="filter-clear" onclick="clearFilter('price')">Clear</span></div>
+          <div class="price-inputs">
+            <input type="number" id="price-min" placeholder="Min ₱" min="0">
+            <input type="number" id="price-max" placeholder="Max ₱" min="0">
+          </div>
+          <button class="btn btn-outline btn-full mt-12" onclick="applyPriceFilter()" style="padding:8px">Apply</button>
+        </div>
+        <div class="filter-section">
+          <div class="filter-title">Rating</div>
+          <div id="rating-filters">
+            <label class="filter-option"><input type="radio" name="rating" value="4"> 4★ & above</label>
+            <label class="filter-option"><input type="radio" name="rating" value="3"> 3★ & above</label>
+            <label class="filter-option"><input type="radio" name="rating" value="0" checked> All Ratings</label>
+          </div>
+        </div>
+        <div class="filter-section">
+          <div class="filter-title">Sellers</div>
+          <div id="seller-filters"></div>
+        </div>
+        <button class="btn btn-primary btn-full mt-12" onclick="applyAllFilters()"><i class="fas fa-filter"></i> Apply Filters</button>
+        <button class="btn btn-secondary btn-full mt-8" onclick="clearAllFilters()">Clear All</button>
+      </aside>
+
+      <!-- Products Main -->
+      <div class="products-main">
+        <!-- Mobile Filter Toggle -->
+        <button class="btn btn-outline mb-12" id="mobile-filter-btn" onclick="toggleMobileFilters()" style="display:none;width:100%">
+          <i class="fas fa-sliders-h"></i> Filters
+        </button>
+
+        <!-- Toolbar -->
+        <div class="products-toolbar">
+          <div>
+            <span class="products-count" id="products-count">Loading...</span>
+            <div id="active-filters" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <select class="sort-select" id="sort-select" onchange="onSortChange()">
+              <option value="">Sort: Default</option>
+              <option value="popular">Most Popular</option>
+              <option value="newest">Newest</option>
+              <option value="rating">Top Rated</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+              <option value="discount">Biggest Discount</option>
+            </select>
+            <div class="view-toggle">
+              <button class="view-btn active" id="grid-btn" onclick="setView('grid')" title="Grid view"><i class="fas fa-th-large"></i></button>
+              <button class="view-btn" id="list-btn" onclick="setView('list')" title="List view"><i class="fas fa-list"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div id="products-container">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination-wrap"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="main-footer"></div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const PER_PAGE = 12;
+    let currentPage = 1;
+    let currentProducts = [];
+    let activeFilters = { category: '', priceMin: '', priceMax: '', rating: 0, seller: '', sort: '', search: '' };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      renderFooter();
+      initCategoryFilters();
+      initSellerFilters();
+      readUrlParams();
+      loadProducts();
+      setupMobileFilters();
+    });
+
+    function readUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('category')) {
+        activeFilters.category = params.get('category');
+        const catInfo = DEMO_CATEGORIES.find(c => c.id === activeFilters.category);
+        document.getElementById('breadcrumb-current').textContent = catInfo ? catInfo.name : 'Products';
+        const radio = document.querySelector(`input[name="cat-filter"][value="${activeFilters.category}"]`);
+        if (radio) radio.checked = true;
+      }
+      if (params.get('search')) {
+        activeFilters.search = params.get('search');
+        const searchInput = document.getElementById('main-search');
+        if (searchInput) searchInput.value = activeFilters.search;
+        document.getElementById('breadcrumb-current').textContent = `Search: "${activeFilters.search}"`;
+      }
+      if (params.get('sort')) {
+        activeFilters.sort = params.get('sort');
+        document.getElementById('sort-select').value = activeFilters.sort;
+      }
+      if (params.get('seller')) {
+        activeFilters.seller = params.get('seller');
+      }
+    }
+
+    function initCategoryFilters() {
+      const el = document.getElementById('category-filters');
+      el.innerHTML = `<label class="filter-option"><input type="radio" name="cat-filter" value="" ${!activeFilters.category ? 'checked' : ''}> All Categories</label>` +
+        DEMO_CATEGORIES.map(c => `<label class="filter-option"><input type="radio" name="cat-filter" value="${c.id}" ${activeFilters.category===c.id?'checked':''}> ${c.icon} ${c.name}</label>`).join('');
+    }
+
+    function initSellerFilters() {
+      const el = document.getElementById('seller-filters');
+      el.innerHTML = `<label class="filter-option"><input type="radio" name="seller-filter" value="" checked> All Sellers</label>` +
+        getSellers().map(s => `<label class="filter-option"><input type="radio" name="seller-filter" value="${s.id}"> ${s.name}</label>`).join('');
+    }
+
+    function loadProducts() {
+      let products = getProducts();
+      if (activeFilters.search) products = searchProducts(activeFilters.search, products);
+      if (activeFilters.category) products = filterByCategory(activeFilters.category, products);
+      if (activeFilters.priceMin || activeFilters.priceMax) products = filterByPriceRange(activeFilters.priceMin, activeFilters.priceMax, products);
+      if (activeFilters.rating > 0) products = filterByRating(activeFilters.rating, products);
+      if (activeFilters.seller) products = products.filter(p => p.sellerId == activeFilters.seller);
+      if (activeFilters.sort) products = sortProducts(products, activeFilters.sort);
+      currentProducts = products;
+      renderProductsList();
+      renderActiveFilters();
+    }
+
+    function renderProductsList() {
+      const container = document.getElementById('products-container');
+      const total = currentProducts.length;
+      document.getElementById('products-count').textContent = `${total} product${total !== 1 ? 's' : ''} found`;
+      if (!total) {
+        container.innerHTML = '<div class="no-results"><div class="no-results-icon">🔍</div><p>No products found matching your filters.</p><button class="btn btn-primary mt-12" onclick="clearAllFilters()">Clear Filters</button></div>';
+        document.getElementById('pagination-wrap').innerHTML = '';
+        return;
+      }
+      const start = (currentPage - 1) * PER_PAGE;
+      const page = currentProducts.slice(start, start + PER_PAGE);
+      const isGrid = document.getElementById('grid-btn').classList.contains('active');
+      if (isGrid) {
+        container.innerHTML = `<div class="products-grid">${page.map(p => renderProductCard(p)).join('')}</div>`;
+      } else {
+        container.innerHTML = page.map(p => renderProductListItem(p)).join('');
+      }
+      renderPagination(document.getElementById('pagination-wrap'), total, PER_PAGE, currentPage, 'goToPage');
+    }
+
+    function renderProductListItem(p) {
+      const inWishlist = isInWishlist(p.id);
+      const seller = getSellerById(p.sellerId);
+      return `
+        <div class="product-card" style="display:flex;flex-direction:row;margin-bottom:12px;max-height:160px">
+          <a href="product.html?id=${p.id}" style="flex-shrink:0;width:160px;height:160px;overflow:hidden;background:var(--gray-100);border-radius:var(--radius-lg) 0 0 var(--radius-lg)">
+            <img src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='https://picsum.photos/seed/default/400/400'">
+          </a>
+          <div style="flex:1;padding:16px;display:flex;gap:16px">
+            <div style="flex:1">
+              <a href="product.html?id=${p.id}" style="font-weight:600;font-size:1rem;color:var(--text)">${p.name}</a>
+              <div class="product-rating mt-8">${renderStars(p.rating)} <span class="rating-val">${p.rating}</span> <span class="review-count">(${p.reviewCount || 0})</span></div>
+              <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${seller ? seller.name : ''} · ${p.sold || 0} sold</div>
+            </div>
+            <div style="text-align:right;display:flex;flex-direction:column;justify-content:space-between">
+              <div>
+                <div class="product-price">${formatPrice(p.price)}</div>
+                ${p.originalPrice > p.price ? `<div class="product-original-price">${formatPrice(p.originalPrice)}</div>` : ''}
+                ${p.discount > 0 ? `<span class="badge badge-sale">-${p.discount}%</span>` : ''}
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="wishlist-btn ${inWishlist?'active':''}" onclick="toggleWishlist(${p.id},this)" style="position:static;opacity:1"><i class="${inWishlist?'fas':'far'} fa-heart"></i></button>
+                <button class="btn btn-primary" onclick="handleAddToCart(${p.id})" style="padding:8px 14px;font-size:0.85rem"><i class="fas fa-cart-plus"></i> Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      renderProductsList();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function applyAllFilters() {
+      const catRadio = document.querySelector('input[name="cat-filter"]:checked');
+      if (catRadio) activeFilters.category = catRadio.value;
+      const sellerRadio = document.querySelector('input[name="seller-filter"]:checked');
+      if (sellerRadio) activeFilters.seller = sellerRadio.value;
+      const ratingRadio = document.querySelector('input[name="rating"]:checked');
+      if (ratingRadio) activeFilters.rating = parseFloat(ratingRadio.value);
+      currentPage = 1;
+      loadProducts();
+    }
+
+    function applyPriceFilter() {
+      activeFilters.priceMin = parseFloat(document.getElementById('price-min').value) || '';
+      activeFilters.priceMax = parseFloat(document.getElementById('price-max').value) || '';
+      currentPage = 1;
+      loadProducts();
+    }
+
+    function onSortChange() {
+      activeFilters.sort = document.getElementById('sort-select').value;
+      currentPage = 1;
+      loadProducts();
+    }
+
+    function clearFilter(type) {
+      if (type === 'category') {
+        activeFilters.category = '';
+        document.querySelector('input[name="cat-filter"][value=""]').checked = true;
+      }
+      if (type === 'price') {
+        activeFilters.priceMin = '';
+        activeFilters.priceMax = '';
+        document.getElementById('price-min').value = '';
+        document.getElementById('price-max').value = '';
+      }
+      currentPage = 1;
+      loadProducts();
+    }
+
+    function clearAllFilters() {
+      activeFilters = { category: '', priceMin: '', priceMax: '', rating: 0, seller: '', sort: '', search: '' };
+      document.getElementById('sort-select').value = '';
+      document.querySelector('input[name="cat-filter"][value=""]').checked = true;
+      document.querySelector('input[name="seller-filter"][value=""]').checked = true;
+      document.querySelector('input[name="rating"][value="0"]').checked = true;
+      document.getElementById('price-min').value = '';
+      document.getElementById('price-max').value = '';
+      currentPage = 1;
+      loadProducts();
+    }
+
+    function renderActiveFilters() {
+      const el = document.getElementById('active-filters');
+      const tags = [];
+      if (activeFilters.search) tags.push(`<span class="chip chip-primary">🔍 ${activeFilters.search} <button onclick="clearSearchFilter()" style="border:none;background:none;cursor:pointer;color:var(--primary)">×</button></span>`);
+      if (activeFilters.category) {
+        const c = DEMO_CATEGORIES.find(c => c.id === activeFilters.category);
+        if (c) tags.push(`<span class="chip chip-primary">${c.icon} ${c.name} <button onclick="clearFilter('category')" style="border:none;background:none;cursor:pointer;color:var(--primary)">×</button></span>`);
+      }
+      if (activeFilters.priceMin || activeFilters.priceMax) tags.push(`<span class="chip chip-primary">₱${activeFilters.priceMin||0}–₱${activeFilters.priceMax||'∞'} <button onclick="clearFilter('price')" style="border:none;background:none;cursor:pointer;color:var(--primary)">×</button></span>`);
+      el.innerHTML = tags.join('');
+    }
+
+    function clearSearchFilter() {
+      activeFilters.search = '';
+      currentPage = 1;
+      loadProducts();
+    }
+
+    function setView(view) {
+      document.getElementById('grid-btn').classList.toggle('active', view === 'grid');
+      document.getElementById('list-btn').classList.toggle('active', view === 'list');
+      renderProductsList();
+    }
+
+    function setupMobileFilters() {
+      const btn = document.getElementById('mobile-filter-btn');
+      if (window.innerWidth <= 768) btn.style.display = 'flex';
+      window.addEventListener('resize', () => { btn.style.display = window.innerWidth <= 768 ? 'flex' : 'none'; });
+    }
+
+    function toggleMobileFilters() {
+      const sidebar = document.getElementById('filters-sidebar');
+      sidebar.classList.toggle('mobile-show');
+    }
+  </script>
+</body>
+</html>

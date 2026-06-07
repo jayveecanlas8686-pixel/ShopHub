@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Dashboard - ShopHub</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="main-header"></div>
+
+  <main class="container" style="padding:20px 16px 40px">
+    <div id="not-seller-msg" style="display:none">
+      <div class="alert alert-info" style="margin-bottom:20px">
+        <i class="fas fa-info-circle"></i> You need to be logged in as a seller. Use demo account: <strong>seller@example.com / password123</strong>
+        <br><br>
+        <strong>Or become a seller:</strong>
+        <div id="become-seller-wrap" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div id="dashboard-wrap" style="display:none">
+      <!-- Seller Info Banner -->
+      <div id="seller-banner"></div>
+
+      <!-- Stats -->
+      <div id="seller-stats" class="stats-grid" style="margin-bottom:24px"></div>
+
+      <!-- Navigation Tabs -->
+      <div class="tabs" style="margin-bottom:20px">
+        <button class="tab-btn active" onclick="showDashTab('products',this)"><i class="fas fa-box"></i> Products</button>
+        <button class="tab-btn" onclick="showDashTab('orders',this)"><i class="fas fa-shopping-bag"></i> Orders</button>
+        <button class="tab-btn" onclick="showDashTab('add-product',this)"><i class="fas fa-plus"></i> Add Product</button>
+        <button class="tab-btn" onclick="showDashTab('store-info',this)"><i class="fas fa-store"></i> Store Info</button>
+      </div>
+
+      <!-- Products Tab -->
+      <div class="tab-panel active" id="tab-products">
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <h3><i class="fas fa-box"></i> My Products</h3>
+            <div style="display:flex;gap:8px">
+              <input type="text" placeholder="Search products..." class="form-control" style="padding:6px 10px;font-size:0.85rem;width:180px" oninput="filterMyProducts(this.value)">
+            </div>
+          </div>
+          <div class="dash-card-body" style="overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Sold</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="seller-products-table">
+                <tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div class="tab-panel" id="tab-orders">
+        <div class="dash-card">
+          <div class="dash-card-header"><h3><i class="fas fa-shopping-bag"></i> My Orders</h3></div>
+          <div class="dash-card-body" style="overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr><th>Order ID</th><th>Items</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+              </thead>
+              <tbody id="seller-orders-table">
+                <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Product Tab -->
+      <div class="tab-panel" id="tab-add-product">
+        <div id="add-product-section" class="dash-card">
+          <div class="dash-card-header"><h3><i class="fas fa-plus-circle"></i> Add New Product</h3></div>
+          <div style="padding:20px">
+            <form id="add-product-form">
+              <div class="form-grid">
+                <div class="form-group form-full">
+                  <label>Product Name *</label>
+                  <input type="text" name="name" class="form-control" placeholder="Enter product name" required>
+                </div>
+                <div class="form-group">
+                  <label>Selling Price (₱) *</label>
+                  <input type="number" name="price" class="form-control" placeholder="999.00" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                  <label>Original Price (₱)</label>
+                  <input type="number" name="originalPrice" class="form-control" placeholder="1299.00" min="0" step="0.01">
+                  <small style="color:var(--text-muted)">Leave blank if no discount</small>
+                </div>
+                <div class="form-group">
+                  <label>Category *</label>
+                  <select name="category" class="form-control" required>
+                    <option value="">Select category</option>
+                    ${DEMO_CATEGORIES.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Stock Quantity *</label>
+                  <input type="number" name="stock" class="form-control" placeholder="100" min="0" required>
+                </div>
+                <div class="form-group form-full">
+                  <label>Product Image URL</label>
+                  <input type="url" name="image" class="form-control" placeholder="https://example.com/product.jpg">
+                  <small style="color:var(--text-muted)">Leave blank to use a placeholder image</small>
+                </div>
+                <div class="form-group form-full">
+                  <label>Description *</label>
+                  <textarea name="description" class="form-control" rows="4" placeholder="Describe your product..." required></textarea>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Product</button>
+                <button type="reset" class="btn btn-secondary">Reset</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Store Info Tab -->
+      <div class="tab-panel" id="tab-store-info">
+        <div class="dash-card">
+          <div class="dash-card-header"><h3><i class="fas fa-store"></i> Store Information</h3></div>
+          <div id="store-info-content" style="padding:20px"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Edit Product Modal -->
+  <div id="edit-product-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px">
+    <div style="background:white;border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)">
+        <h3 style="font-size:1.1rem;font-weight:700">Edit Product</h3>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div style="padding:20px">
+        <div class="form-grid">
+          <div class="form-group form-full"><label>Product Name</label><input type="text" name="name" class="form-control"></div>
+          <div class="form-group"><label>Selling Price (₱)</label><input type="number" name="price" class="form-control" min="0" step="0.01"></div>
+          <div class="form-group"><label>Original Price (₱)</label><input type="number" name="originalPrice" class="form-control" min="0" step="0.01"></div>
+          <div class="form-group"><label>Category</label><select name="category" class="form-control">${DEMO_CATEGORIES.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}</select></div>
+          <div class="form-group"><label>Stock</label><input type="number" name="stock" class="form-control" min="0"></div>
+          <div class="form-group form-full"><label>Image URL</label><input type="url" name="image" class="form-control"></div>
+          <div class="form-group form-full"><label>Description</label><textarea name="description" class="form-control" rows="3"></textarea></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" onclick="saveEditProduct()"><i class="fas fa-save"></i> Save Changes</button>
+          <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="assets/js/checkout.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      renderHeader();
+      renderCartCount();
+      renderWishlistCount();
+      initializeData();
+
+      const user = getCurrentUser();
+      if (!user) {
+        window.location.href = 'login.html?redirect=seller-dashboard.html';
+        return;
+      }
+      if (user.role !== 'seller') {
+        document.getElementById('not-seller-msg').style.display = 'block';
+        renderBecomeSeller(user);
+        return;
+      }
+      document.getElementById('dashboard-wrap').style.display = 'block';
+      renderSellerBanner(user);
+      initSellerDashboard();
+    });
+
+    function renderSellerBanner(user) {
+      const seller = getSellerById(user.sellerId);
+      const el = document.getElementById('seller-banner');
+      if (!seller || !el) return;
+      el.innerHTML = `
+        <div style="background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;border-radius:var(--radius-xl);padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
+          <img src="${seller.avatar}" style="width:60px;height:60px;border-radius:50%;border:3px solid rgba(255,255,255,0.5)" onerror="this.style.display='none'" alt="">
+          <div style="flex:1">
+            <h2 style="font-size:1.2rem;font-weight:800">${seller.name}</h2>
+            <p style="opacity:0.85;font-size:0.85rem">Seller Center · ${seller.verified ? '✓ Verified Seller' : 'Unverified'}</p>
+          </div>
+          <a href="seller.html?id=${seller.id}" class="btn" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4)"><i class="fas fa-external-link-alt"></i> View Store</a>
+        </div>
+      `;
+    }
+
+    function renderBecomeSeller(user) {
+      const el = document.getElementById('become-seller-wrap');
+      if (!el) return;
+      el.innerHTML = `
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <input type="text" id="store-name-input" class="form-control" placeholder="Enter your store name" style="width:240px">
+          <button class="btn btn-primary" onclick="handleBecomeSeller()"><i class="fas fa-store"></i> Become a Seller</button>
+          <a href="login.html" class="btn btn-outline">Login with Seller Account</a>
+        </div>
+      `;
+    }
+
+    function handleBecomeSeller() {
+      const user = getCurrentUser();
+      if (!user) { window.location.href = 'login.html'; return; }
+      const name = document.getElementById('store-name-input').value.trim();
+      if (!name) { showNotification('Please enter a store name.', 'error'); return; }
+      const result = becomeseller(name);
+      if (result.success) {
+        showNotification('Seller account created!', 'success');
+        setTimeout(() => window.location.reload(), 800);
+      }
+    }
+
+    function showDashTab(tab, btn) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      btn.classList.add('active');
+      if (tab === 'store-info') renderStoreInfo();
+    }
+
+    function renderStoreInfo() {
+      const user = getCurrentUser();
+      const seller = getSellerById(user.sellerId);
+      if (!seller) return;
+      document.getElementById('store-info-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="form-group"><label>Store Name</label><input type="text" class="form-control" value="${seller.name}" readonly style="background:var(--gray-100)"></div>
+          <div class="form-group"><label>Store Rating</label><input type="text" class="form-control" value="${seller.rating} ★" readonly style="background:var(--gray-100)"></div>
+          <div class="form-group"><label>Total Sales</label><input type="text" class="form-control" value="${seller.totalSales.toLocaleString()}" readonly style="background:var(--gray-100)"></div>
+          <div class="form-group"><label>Followers</label><input type="text" class="form-control" value="${seller.followers.toLocaleString()}" readonly style="background:var(--gray-100)"></div>
+          <div class="form-group"><label>Location</label><input type="text" class="form-control" value="${seller.location}"></div>
+          <div class="form-group"><label>Response Time</label><input type="text" class="form-control" value="${seller.responseTime}"></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Store Description</label><textarea class="form-control" rows="3">${seller.description || ''}</textarea></div>
+        </div>
+        <button class="btn btn-primary" onclick="showNotification('Store info saved (demo)','success')"><i class="fas fa-save"></i> Save Changes</button>
+        <a href="seller.html?id=${seller.id}" class="btn btn-outline" style="margin-left:8px"><i class="fas fa-eye"></i> Preview Store</a>
+      `;
+    }
+
+    function filterMyProducts(query) {
+      const user = getCurrentUser();
+      if (!user) return;
+      const myProducts = getSellerProducts(user.sellerId);
+      const filtered = searchProducts(query, myProducts);
+      const el = document.getElementById('seller-products-table');
+      if (!el) return;
+      el.innerHTML = filtered.map(p => `
+        <tr>
+          <td><div class="product-thumb-wrap"><img src="${p.image}" class="product-thumb" onerror="this.src='https://picsum.photos/seed/default/60/60'" alt=""><span>${p.name}</span></div></td>
+          <td>${formatPrice(p.price)}</td>
+          <td>${p.stock}</td>
+          <td>${(p.sold||0).toLocaleString()}</td>
+          <td><span class="status-badge ${p.isActive!==false?'status-delivered':'status-cancelled'}">${p.isActive!==false?'Active':'Inactive'}</span></td>
+          <td>
+            <button class="btn-sm btn-outline" onclick="openEditProduct(${p.id})"><i class="fas fa-edit"></i></button>
+            <button class="btn-sm btn-danger-outline" onclick="confirmDeleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="6" class="text-center text-muted">No products found</td></tr>';
+    }
+  </script>
+</body>
+</html>
